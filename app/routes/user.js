@@ -169,7 +169,7 @@ router.get('/api/user/activation/:id', async (req, res) => {
                             return;
                         }
                         else {
-                           res.redirect('https://vex-xcc.github.io/ataa.org/#/login'); 
+                           res.redirect('https://vex-xcc.github.io/infinite-loop/#/SignIn'); 
                         }
                     })
             } catch (error) {
