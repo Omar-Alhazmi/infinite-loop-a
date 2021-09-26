@@ -40,7 +40,7 @@ const UserSchema = mongoose.Schema({
     type: String,
     required: [true, 'Password required']
   },
-  StorageNumber: {
+  StorageId: {
     type: Schema.Types.ObjectId,
     ref: 'Storage'
 },
@@ -49,6 +49,14 @@ const UserSchema = mongoose.Schema({
     required: [true, 'User Type is required'],
     enum: {
       values: ["Customer","StorageAdmin"],
+      message: '{VALUE} is not supported',
+    },
+  },
+  SubscriptionPlan:{
+    type: String,
+    required: [true, 'User Type is required'],
+    enum: {
+      values: ["Daily","Primary","Premium"],
       message: '{VALUE} is not supported',
     },
   },

@@ -8,6 +8,7 @@ const path = require('path');
 require("dotenv/config");
 // require database configuration logic
 const db = require('./config/db');
+const  user = require('./app/routes/user');
 
 // Define Ports
 const reactPort = 3000
@@ -23,9 +24,7 @@ const cdb = db.currentDB
 mongoose.connect(cdb,
   {
    useNewUrlParser: true,
-   useCreateIndex: true,
    useUnifiedTopology: true,
-   useFindAndModify: false
 });
 console.log("MongoDB Connected on "+cdb)
 // set CORS headers on response from this API using the `cors` NPM package
@@ -58,6 +57,7 @@ app.use((err, req, res, next) => {
 });
 
 
+app.use(user);
 
 // Handler for 404 - Resource Not Found
 app.get('/*', function(req, res) {
