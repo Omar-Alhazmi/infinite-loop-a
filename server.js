@@ -5,7 +5,7 @@ const cors = require("cors");
 const path = require('path');
 
 
-require("dotenv/config");
+// require("dotenv/config");
 // require database configuration logic
 const db = require('./config/db');
 const  user = require('./app/routes/user');
