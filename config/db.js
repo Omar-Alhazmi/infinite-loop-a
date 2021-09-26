@@ -1,6 +1,6 @@
 
 // Creating a base name for the MongoDB
-const mongooseBaseName = 'StorageChaine';
+const mongooseBaseName = 'StorageChain';
 
 // Create the MongoDB URI for Development and Test
 const database = {

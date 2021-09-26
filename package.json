@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -15,12 +16,18 @@
   "bugs": {
     "url": "https://github.com/vex-xcc/StorageChaine_b/issues"
   },
-  "homepage": "https://github.com/vex-xcc/StorageChaine_b#readme",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
+    "dotenv": "^10.0.0",
     "express": "^4.17.1",
-    "mongoose": "^6.0.6",
+    "googleapis": "^87.0.0",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose-unique-validator": "^2.0.3",
+    "multer": "^1.4.3",
+    "nodemailer": "^6.6.3",
+    "nodemon": "^2.0.12",
     "path": "^0.12.7"
   }
 }
