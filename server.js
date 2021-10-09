@@ -9,6 +9,7 @@ const path = require('path');
 // require database configuration logic
 const db = require('./config/db');
 const  user = require('./app/routes/user');
+const  item = require('./app/routes/item');
 
 // Define Ports
 const reactPort = 3000
@@ -58,6 +59,7 @@ app.use((err, req, res, next) => {
 
 
 app.use(user);
+app.use(item);
 
 // Handler for 404 - Resource Not Found
 app.get('/*', function(req, res) {
