@@ -110,6 +110,7 @@ router.post('/api/User/register', (req, res) => {
             : SubscriptionPlan === "Premium" ? EndOfSubscription = new Date(date.setMonth(date.getMonth() + 12))
                 : 0
         const newStorage = new Storage(stor)
+        newUser.StorageId = newStorage._id
         newStorage.save()
         User.addUser(newUser, (err, addedUser) => {
             console.log(addedUser);

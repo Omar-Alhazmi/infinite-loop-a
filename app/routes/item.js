@@ -19,7 +19,8 @@ require("dotenv");
 //     M: "success"
 //   })
 // })
-router.post('/api/add/new/item/:id', Auth.auth.checkCustomer, (req, res) => {
+// Auth.auth.checkCustomer,
+router.post('/api/add/new/item/:id',  (req, res) => {
   let newCapacity
   const item = {
     StorAt: req.params.id,
@@ -85,6 +86,8 @@ router.post('/api/add/new/item/:id', Auth.auth.checkCustomer, (req, res) => {
         }, config.database.secret, {
           expiresIn: "5h"
         })
+        foundStorage.Items.push(savedItem)
+        foundStorage.save()
         savedItem.save()
         foundStorage.save()
         res.status(200).json({
@@ -101,6 +104,20 @@ router.post('/api/add/new/item/:id', Auth.auth.checkCustomer, (req, res) => {
 });
 //===================== Patch ====================\\
 
+//=========================================================
+
+//===================== get ====================\\
+router.get('/api/get/storage/by/:id', (req, res) => {
+  Storage.findById(req.params.id)
+    .populate('Items', 'ItemName ItemSize')
+    .exec((err, Storage) => {
+      if (err) {
+        res.status(500).send(err);
+        return;
+      }
+      res.status(200).json(Storage);
+    })
+});
 //=========================================================
 
 module.exports = router;
