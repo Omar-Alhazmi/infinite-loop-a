@@ -109,12 +109,14 @@ router.post('/api/add/new/item/:id',  (req, res) => {
 //===================== get ====================\\
 router.get('/api/get/storage/by/:id', (req, res) => {
   Storage.findById(req.params.id)
-    .populate('Items', 'ItemName ItemSize')
+  .lean().populate('Items', 'ItemName ItemSize')
+    .lean().populate('StorageCapacity', 'TotalCapacity -_id')
     .exec((err, Storage) => {
       if (err) {
         res.status(500).send(err);
         return;
       }
+      console.log(Storage);
       res.status(200).json(Storage);
     })
 });
