@@ -10,7 +10,9 @@ const path = require('path');
 const db = require('./config/db');
 const  user = require('./app/routes/user');
 const  item = require('./app/routes/item');
+const  storage = require('./app/routes/storage');
 
+// const storage = require('./app/routes/storage');
 // Define Ports
 const reactPort = 3000
 const expressPort = 5000
@@ -60,6 +62,9 @@ app.use((err, req, res, next) => {
 
 app.use(user);
 app.use(item);
+app.use(storage);
+
+// app.use(storage);
 
 // Handler for 404 - Resource Not Found
 app.get('/*', function(req, res) {

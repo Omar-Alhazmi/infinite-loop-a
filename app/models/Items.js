@@ -15,7 +15,7 @@ const ItemsSchema = mongoose.Schema(
             type: Schema.Types.ObjectId,
             ref: 'Storage',
             required: [true, "Stor At is required"]
-        }
+        },
     },
     {
         timestamps: true,
