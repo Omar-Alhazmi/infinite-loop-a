@@ -13,14 +13,14 @@ require("dotenv");
 
   //============================  GET routers ============================\\
   //==============get all Storage ================\\
-  router.get('/api/get/GeneralCapacity', (req, res) => {
-    GeneralCapacity.find({})
-    .exec((err, GeneralCapacity) => {
-      if (err) {
-        res.status(500).send(err);
-        return;
-      }
-      res.status(200).json(GeneralCapacity);
-    })
-})
+//   router.get('/api/get/GeneralCapacity', (req, res) => {
+//     GeneralCapacity.find({})
+//     .exec((err, GeneralCapacity) => {
+//       if (err) {
+//         res.status(500).send(err);
+//         return;
+//       }
+//       res.status(200).json(GeneralCapacity);
+//     })
+// })
 module.exports = router;

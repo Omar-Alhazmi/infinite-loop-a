@@ -209,7 +209,7 @@ router.patch('/api/update/item/:id', (req, res) => {
   })
 })
 //=========================================================
-router.delete('/api/delete/item/by/:id',(req,res)=>{
+router.delete('/api/delete/item/by/:id', (req, res) => {
   Items.findById(req.params.id, async (error, foundItem) => {
     try {
       await foundItem.remove();
@@ -225,17 +225,62 @@ router.delete('/api/delete/item/by/:id',(req,res)=>{
   });
 });
 //===================== get ====================\\
-router.get('/api/get/storage/by/:id', (req, res) => {
-  Storage.findById(req.params.id)
-    .lean().populate('Items', 'ItemName ItemSize')
-    .lean().populate('StorageCapacity', 'TotalCapacity -_id')
-    .exec((err, Storage) => {
-      if (err) {
-        res.status(500).send(err);
-        return;
+router.get('/api/get/GeneralCapacity', (req, res) => {
+  Items.aggregate([
+    {
+      $project: {
+        TotalArea_per_item: { $multiply: ["$Quantity", "$ItemSize"] },
       }
-      res.status(200).json(Storage);
-    })
+    },
+    {
+      $group: {
+        _id: null,
+        TotalCapacity: {
+          $sum: "$TotalArea_per_item"
+        }
+      }
+    }
+  ]).exec(async (err, GeneralCapacity) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send(err);
+      return;
+    }
+    res.status(200).json(GeneralCapacity);
+  })
+})
+router.get('/api/get/storage/by/:id', (req, res) => {
+  Items.aggregate([
+    {
+      $project: {
+        TotalArea_per_item: { $multiply: ["$Quantity", "$ItemSize"] },
+      }
+    },
+    {
+      $group: {
+        _id: null,
+        TotalCapacity: {
+          $sum: "$TotalArea_per_item"
+        }
+      }
+    }
+  ]).exec(async (err, GeneralCapacity) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send(err);
+      return;
+    }
+    Storage.findById(req.params.id)
+      .lean().populate('Items', 'ItemName ItemSize')
+      .lean().populate('StorageCapacity', 'TotalCapacity -_id')
+      .exec((err, Storage) => {
+        if (err) {
+          res.status(500).send(err);
+          return;
+        }
+        res.status(200).json({ Storage, GeneralCapacity });
+      })
+  })
 });
 //=========================================================
 
