@@ -75,8 +75,6 @@ async function sendMail(user) {
 router.post('/api/User/register', (req, res) => {
     let newCapacity
     GeneralCapacity.find({}, async (err, foundCapacity) => {
-        console.log("====>\n", foundCapacity[0]);
-
         const { FullName, CompanyName, NationalId, Phone, Email, password, Role, SubscriptionPlan } = req.body
         const user = {}
         user.FullName = FullName,
@@ -212,6 +210,18 @@ router.get('/api/user/activation/:id', async (req, res) => {
     }
     )
 });
+//================================== =======================================//
+router.patch('/api/Update/User/by/:id', (req, res) => {
+    User.findById(req.params.id, async (error, foundUser) => {
+      try {
+        await foundUser.updateOne(req.body);
+        res.status(200).json(req.body);
+      } catch (error) {
+          console.log(error);
+        res.status(404).json(error);
+      }
+    });
+  });
 //================================
 router.get('/api/get/all/user/Customer', (req, res) => {
     User.find({})

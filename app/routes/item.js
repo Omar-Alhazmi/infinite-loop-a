@@ -10,113 +10,230 @@ const jwt = require('jsonwebtoken');
 const config = require('../../config/db');
 require("dotenv");
 //----------------------- All Post request ----------------------------\\
-//this route response to register a new Item to the Storage
-// router.post('/api/add/Cp', Auth.auth.checkCustomer, (req, res) => {
-//   let savedCP = new GeneralCapacity(req.body)
-//   savedCP.save()
-//   res.status(200).json({
-//     success: true,
-//     M: "success"
-//   })
-// })
-// Auth.auth.checkCustomer,
-router.post('/api/add/new/item/:id',  (req, res) => {
-  let newCapacity
-  const item = {
-    StorAt: req.params.id,
-    ItemName: req.body.ItemName,
-    ItemSize: req.body.ItemSize
-  }
-  let savedItem = new Items(item)
-  GeneralCapacity.find({}, (err, foundCapacity) => {
-    Storage.findById(savedItem.StorAt, async (error, foundStorage) => {
-      let RemainingSpace, TotalOccupancy
-      try {
-        if (foundCapacity[0].TotalCapacity > 0) {
-          switch (true) {
-            case ((foundStorage.StorageType === "Primary") && (foundStorage.SubscriptionStorageArea > savedItem.ItemSize)):
-              newCapacity = foundStorage.SubscriptionStorageArea - savedItem.ItemSize
-              await foundStorage.updateOne({ SubscriptionStorageArea: newCapacity });
-              break;
-            case ((foundStorage.StorageType === "Primary") && (foundStorage.SubscriptionStorageArea > 0)):
-              RemainingSpace = savedItem.ItemSize - foundStorage.SubscriptionStorageArea
-              await foundStorage.updateOne({ SubscriptionStorageArea: 0 })
-              await foundStorage.updateOne({ StorageArea: RemainingSpace })
-              break;
-            case ((foundStorage.StorageType === "Primary")):
-              TotalOccupancy = foundStorage.StorageArea + savedItem.ItemSize
-              newCapacity = foundCapacity[0].TotalCapacity - savedItem.ItemSize
-              await foundStorage.updateOne({ StorageArea: TotalOccupancy });
-              await foundCapacity[0].updateOne({ TotalCapacity: newCapacity });
-              break;
-            case ((foundStorage.StorageType === "Premium") && (foundStorage.SubscriptionStorageArea > savedItem.ItemSize)):
-              newCapacity = foundStorage.SubscriptionStorageArea - savedItem.ItemSize
-              await foundStorage.updateOne({ SubscriptionStorageArea: newCapacity });
-              break;
-            case ((foundStorage.StorageType === "Premium") && (foundStorage.SubscriptionStorageArea > 0)):
-              RemainingSpace = savedItem.ItemSize - foundStorage.SubscriptionStorageArea
-              await foundStorage.updateOne({ SubscriptionStorageArea: 0 })
-              await foundStorage.updateOne({ StorageArea: RemainingSpace })
-              break;
-            case ((foundStorage.StorageType === "Premium")):
-              TotalOccupancy = foundStorage.StorageArea + savedItem.ItemSize
-              newCapacity = foundCapacity[0].TotalCapacity - savedItem.ItemSize
-              await foundStorage.updateOne({ StorageArea: TotalOccupancy })
-              await foundCapacity[0].updateOne({ TotalCapacity: newCapacity });
-              break;
-            case ((foundStorage.StorageType === "Daily")):
-              TotalOccupancy = foundStorage.StorageArea + savedItem.ItemSize
-              newCapacity = foundCapacity[0].TotalCapacity - savedItem.ItemSize
-              await foundStorage.updateOne({ StorageArea: TotalOccupancy });
-              await foundCapacity[0].updateOne({ TotalCapacity: newCapacity });
-              break;
-            default:
-              TotalOccupancy = foundStorage.StorageArea + savedItem.ItemSize
-              newCapacity = foundCapacity[0].TotalCapacity - savedItem.ItemSize
-              await foundStorage.updateOne({ StorageArea: TotalOccupancy });
-              await foundCapacity[0].updateOne({ TotalCapacity: newCapacity });
-              break;
+router.post('/api/add/new/item/:id', (req, res) => {
+  Storage.aggregate([
+    {
+      $lookup: {
+        from: 'items',
+        localField: '_id',
+        foreignField: 'StorAt',
+        as: 'item_in_storage'
+      }
+    }, {
+      $unwind: {
+        path: '$item_in_storage',
+        preserveNullAndEmptyArrays: true
+      }
+    },
+    {
+      $group: {
+        _id: '$_id',
+        StorageTotalOccupancy: {
+          $sum: {
+            $multiply: ["$item_in_storage.Quantity", "$item_in_storage.ItemSize"]
           }
         }
-        const token = jwt.sign({
-          type: "Storage data",
-          data: {
-            StorageArea: newCapacity
+      }
+    }
+  ]).exec(async (err, TotalCapacity) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send(err);
+      return;
+    }
+    let TotalStorageCapacity = TotalCapacity.map(item => item.StorageTotalOccupancy).reduce((prev, curr) => prev + curr, 0)
+    if (TotalCapacity[0].TotalStorageCapacity > 6000) {
+      return res.status(406).send({
+        success: false,
+        message: "There Is No Enough Space"
+      });
+    }
+    Storage.findById(req.params.id)
+      .populate('Items', 'ItemName Quantity ItemSize')
+      .exec(async (err, foundStorage) => {
+        if (err) {
+          res.status(500).send(err);
+          return;
+        }
+        const { ItemName, ItemSize, Quantity } = req.body
+        const item = {}
+        let itemFound = null
+        let isFound = false
+        foundStorage.Items.map((item, index) => {
+          if (item.ItemName === req.body.ItemName) {
+            itemFound = item
+            isFound = true
+            return itemFound
           }
-        }, config.database.secret, {
-          expiresIn: "5h"
         })
-        foundStorage.Items.push(savedItem)
-        foundStorage.save()
-        savedItem.save()
-        foundStorage.save()
-        res.status(200).json({
-          success: true,
-          token: token
+        let savedItem
+        if (isFound === true && itemFound !== null) {
+          newQuantity = req.body.Quantity + itemFound.Quantity
+          await itemFound.updateOne({ Quantity: newQuantity })
+          savedItem = itemFound
+        } else if (isFound === false && itemFound === null) {
+          item.StorAt = req.params.id,
+            item.ItemName = ItemName
+          item.ItemSize = ItemSize
+          item.Quantity = Quantity
+          savedItem = new Items(item)
+          foundStorage.Items.push(savedItem)
+        }
+        let TotalOccupancy
+        let totalItemSize = savedItem.ItemSize * Quantity
+        let newCapacity = TotalCapacity + totalItemSize
+        try {
+          if (TotalStorageCapacity <= 6000) {
+            TotalOccupancy = foundStorage.StorageArea + totalItemSize
+            await foundStorage.updateOne({ StorageArea: TotalOccupancy });
+          }
+
+          const token = jwt.sign({
+            type: "Storage data",
+            data: {
+              StorageArea: newCapacity
+            }
+          }, config.database.secret, {
+            expiresIn: "5h"
+          })
+          savedItem.save()
+          foundStorage.save()
+          res.status(200).json({
+            success: true,
+            token: token
+          })
+        }
+        catch (error) {
+          console.log(error);
+          res.status(404).json(error);
+        }
+      });
+  })
+})
+// });
+//===================== Patch ====================\\
+router.patch('/api/update/item/:id', (req, res) => {
+  Storage.aggregate([
+    {
+      $lookup: {
+        from: 'items',
+        localField: '_id',
+        foreignField: 'StorAt',
+        as: 'item_in_storage'
+      }
+    }, {
+      $unwind: {
+        path: '$item_in_storage',
+        preserveNullAndEmptyArrays: true
+      }
+    },
+    {
+      $group: {
+        _id: '$_id',
+        StorageTotalOccupancy: {
+          $sum: {
+            $multiply: ["$item_in_storage.Quantity", "$item_in_storage.ItemSize"]
+          }
+        }
+      }
+    }
+  ]).exec(async (err, TotalCapacity) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send(err);
+      return;
+    }
+    let TotalStorageCapacity = TotalCapacity.map(item => item.StorageTotalOccupancy).reduce((prev, curr) => prev + curr, 0)
+    if (TotalCapacity[0].TotalStorageCapacity > 6000) {
+      return res.status(406).send({
+        success: false,
+        message: "There Is No Enough Space"
+      });
+    }
+    Storage.findById(req.params.id)
+      .populate('Items', 'ItemName Quantity ItemSize')
+      .exec(async (err, foundStorage) => {
+        if (err) {
+          res.status(500).send(err);
+          return;
+        }
+        const { ItemName, ItemSize, Quantity } = req.body
+        const item = {}
+        let itemFound = null
+        let isFound = false
+        foundStorage.Items.map((item, index) => {
+          if (item.ItemName === req.body.ItemName) {
+            itemFound = item
+            isFound = true
+            return itemFound
+          }
         })
-      }
-      catch (error) {
-        console.log(error);
-        res.status(404).json(error);
-      }
-    });
+        let savedItem
+        if (isFound === true && itemFound !== null) {
+          item.Quantity = Quantity
+          item.ItemName = ItemName
+          item.ItemSize = ItemSize
+          await itemFound.updateOne(item)
+          savedItem = itemFound
+        } else if (isFound === false && itemFound === null) {
+          return res.status(406).send({
+            success: false,
+            message: "Item Not Found"
+          });
+        }
+        let TotalOccupancy
+        let totalItemSize = savedItem.ItemSize * Quantity
+        let newCapacity = TotalCapacity + totalItemSize
+        try {
+          if (TotalStorageCapacity <= 6000) {
+            TotalOccupancy = foundStorage.StorageArea + totalItemSize
+            await foundStorage.updateOne({ StorageArea: TotalOccupancy });
+          }
+          const token = jwt.sign({
+            type: "Storage data",
+            data: {
+              StorageArea: newCapacity
+            }
+          }, config.database.secret, {
+            expiresIn: "5h"
+          })
+          savedItem.save()
+          foundStorage.save()
+          res.status(200).json({ success: true, token: token })
+        }
+        catch (error) {
+          console.log(error);
+          res.status(404).json(error);
+        }
+      });
+  })
+})
+//=========================================================
+router.delete('/api/delete/item/by/:id',(req,res)=>{
+  Items.findById(req.params.id, async (error, foundItem) => {
+    try {
+      await foundItem.remove();
+      res.status(200).json(`Item Id:  ${req.params.id} has been deleted `);
+    } catch (error) {
+      res.status(404).json({
+        error: {
+          name: 'DocumentNotFound',
+          massage: 'The provided ID dose not match any Document on Service'
+        }
+      });
+    }
   });
 });
-//===================== Patch ====================\\
-
-//=========================================================
-
 //===================== get ====================\\
 router.get('/api/get/storage/by/:id', (req, res) => {
   Storage.findById(req.params.id)
-  .lean().populate('Items', 'ItemName ItemSize')
+    .lean().populate('Items', 'ItemName ItemSize')
     .lean().populate('StorageCapacity', 'TotalCapacity -_id')
     .exec((err, Storage) => {
       if (err) {
         res.status(500).send(err);
         return;
       }
-      console.log(Storage);
       res.status(200).json(Storage);
     })
 });

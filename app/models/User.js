@@ -60,6 +60,10 @@ const UserSchema = mongoose.Schema({
       message: '{VALUE} is not supported',
     },
   },
+  OrderSend: [{
+    type: Schema.Types.ObjectId,
+    ref: 'Order'
+}],
   Active:{
     type: Boolean,
     required:true,

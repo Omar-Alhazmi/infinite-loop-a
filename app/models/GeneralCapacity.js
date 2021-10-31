@@ -8,4 +8,16 @@ const GeneralCapacitySchema = mongoose.Schema(
         }
     }
 );
-module.exports = new mongoose.model('GeneralCapacity', GeneralCapacitySchema)
+const GeneralCapacity = module.exports = new mongoose.model('GeneralCapacity', GeneralCapacitySchema)
+
+GeneralCapacity.aggregate([
+    { "$lookup": {
+      "from": "Storage",
+      "localField": "TotalCapacity",
+      "foreignField": "StorageArea",
+      "as": "SumTotal"
+    }},
+    { "$project": {
+      "total": { "$sum": "$SumTotal.value" }
+    }}
+  ])

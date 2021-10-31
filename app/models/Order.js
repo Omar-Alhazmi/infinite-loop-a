@@ -6,11 +6,19 @@ const OrderSchema = mongoose.Schema({
         type: String,
         required: [true, "Customer Name is required"]
     },
-    HaveItems: {
-        type: Schema.Types.ObjectId,
-        ref: 'Items',
-        required: [true, "Order Must Have One Item Or More"]
-    },
+    HaveItems: [{
+        ItemId: {
+            type: Schema.Types.ObjectId,
+            ref: 'Items',
+            required: [true, "Stor At is required"]
+        },
+        Name: { type: String,},
+        Quantity: {
+            type: Number,
+            min: [1, "Quantity is required"],
+            deafult: 1
+        }  
+      }],
     OrderStatus: {
         type: String,
         required: [true, 'Order Status is required'],

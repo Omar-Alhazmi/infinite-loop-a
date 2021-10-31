@@ -11,6 +11,10 @@ const ItemsSchema = mongoose.Schema(
             type: Number,
             required: [true, "Item Size is required"]
         },
+        Quantity: {
+            type: Number,
+            required: [true, "Item Quantity is required"]
+        },
         StorAt: {
             type: Schema.Types.ObjectId,
             ref: 'Storage',
@@ -19,6 +23,6 @@ const ItemsSchema = mongoose.Schema(
     },
     {
         timestamps: true,
-    }
+    },
 );
 module.exports = new mongoose.model('Items', ItemsSchema)
