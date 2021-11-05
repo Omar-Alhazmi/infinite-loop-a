@@ -11,57 +11,76 @@ const jwt = require('jsonwebtoken');
 const config = require('../../config/db');
 require("dotenv");
 //----------------------- All Post request ----------------------------\\
-router.post('/api/make/order/:id', (req, res) => {
-    Items.find({})
-        .where('_id')
-        .in(req.body.ids)
-        .exec(async (err, foundItem) => {
-            if (err) {
-                console.log(err);
-                res.status(500).send(err);
-                return;
-            }
+router.post('/api/make/order/:id', async (req, res) => {
+    Storage.findById(req.params.id)
+        .populate('BelongTo')
+        .populate('Items')
+        .exec(async (StorageError, storageFound) => {
             try {
-                let promises = foundItem.map(async (item, index) => {
-                    if (item._id) {
-                        let product = {}
-                        product.ItemId = item._id
-                        product.Name = item.ItemName
-                        product.Quantity = req.body.Quantity[index]
-                        if (item.Quantity >= product.Quantity) {
-                            let newQuantity = item.Quantity - product.Quantity
-                            await item.updateOne({ Quantity: newQuantity })
-                            item.save()
-                            return product
+                if (StorageError) {
+                    console.log(StorageError);
+                    res.status(500).send(StorageError);
+                    return;
+                }
+                let totalArea = 0;
+                let savedOrder, haveProduct
+                try {
+                    haveProduct = storageFound.Items.map((item, index) => {
+                        if (item._id) {
+                            let product = {}
+                            product.ItemId = item._id
+                            product.Name = item.ItemName
+                            product.Quantity = req.body.Quantity[index]
+                            if (item.Quantity >= product.Quantity) {
+                                let newQuantity = item.Quantity - product.Quantity
+                                let itemId = { _id: item._id }
+                                totalArea += product.Quantity * item.ItemSize
+                                Items.findOneAndUpdate(itemId, { $set: { Quantity: newQuantity } }, {
+                                    useFindAndModify: false,
+                                    returnNewDocument: true
+                                }, function (error, result) {
+                                });
+                                return product
+                            }
                         }
+                    });
+                } catch (error) {
+                    console.log(error);
+                    res.status(404).json(error);
+                }
+                try {
+                    let order = {
+                        CustomerName: req.body.CustomerName,
+                        OrderStatus: req.body.OrderStatus,
+                        ShippedBy: req.body.ShippedBy,
+                        HaveItems: haveProduct
                     }
-                });
-                let order = {}
-                Promise.all(promises)
-                    .then(results => {
-                        order.CustomerName = req.body.CustomerName
-                        order.OrderStatus = req.body.OrderStatus
-                        order.ShippedBy = req.body.ShippedBy
-                        order.HaveItems = results
-                        let savedOrder = new Order(order)
-                        savedOrder.save()
-                        User.findById(req.params.id)
-                            .exec(async (err, userFound) => {
-                                if (err) {
-                                    console.log(err);
-                                    res.status(500).send(err);
-                                    return;
-                                }
-                                userFound.OrderSend.push(savedOrder)
-                                userFound.save()
-                            })
-                        res.status(200).json(savedOrder)
-                    })
-                    .catch(e => {
-                        console.error(e);
-                    })
-            }
-            catch (error) {
+                    savedOrder = new Order(order)
+                    savedOrder.save()
+                } catch (error) {
+                    console.log(error);
+                    res.status(404).json(error);
+                }
+
+                User.findById(storageFound.BelongTo._id, async (userError, foundUser) => {
+                    try {
+                        if (userError) {
+                            console.log(userError);
+                            res.status(500).send(userError);
+                            return;
+                        }
+                        foundUser.OrderSend.push(savedOrder);
+                        foundUser.save()
+                    } catch (error) {
+                        console.log(error);
+                        res.status(404).json(error);
+                    }
+                    let newArea = storageFound.StorageArea - totalArea
+                    await storageFound.updateOne({ StorageArea: newArea })
+                    storageFound.save()
+                    res.status(200).json(savedOrder)
+                })
+            } catch (error) {
                 console.log(error);
                 res.status(404).json(error);
             }
@@ -71,9 +90,10 @@ router.post('/api/make/order/:id', (req, res) => {
 //=========================================================
 
 //===================== get ====================\\
-router.get('/api/get/all/Order/by/:id', (req, res) => {
+router.get('/api/get/Order/by/:id', (req, res) => {
     User.findById(req.params.id)
-    .lean().populate('OrderSend')
+        .populate('OrderSend', '-_id')
+        .populate('StorageId', 'StorageArea -_id')
         .exec((err, Order) => {
             if (err) {
                 res.status(500).send(err);
@@ -82,6 +102,22 @@ router.get('/api/get/all/Order/by/:id', (req, res) => {
             res.status(200).json(Order);
         })
 });
+//===================    ======================\\
+
+router.get('/api/get/all/Order', (req, res) => {
+    User.find({})
+        .populate('OrderSend', '-_id')
+        .populate('StorageId', 'StorageArea -_id')
+        .exec((err, Order) => {
+            if (err) {
+                res.status(500).send(err);
+                return;
+            }
+            res.status(200).json(Order);
+        })
+});
+
+//========================  ============================//
 //=========================================================
 
 module.exports = router;

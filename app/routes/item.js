@@ -249,6 +249,7 @@ router.get('/api/get/GeneralCapacity', (req, res) => {
     res.status(200).json(GeneralCapacity);
   })
 })
+
 router.get('/api/get/storage/by/:id', (req, res) => {
   Items.aggregate([
     {
@@ -271,7 +272,7 @@ router.get('/api/get/storage/by/:id', (req, res) => {
       return;
     }
     Storage.findById(req.params.id)
-      .lean().populate('Items', 'ItemName ItemSize')
+      .lean().populate('Items', 'ItemName ItemSize Quantity')
       .lean().populate('StorageCapacity', 'TotalCapacity -_id')
       .exec((err, Storage) => {
         if (err) {

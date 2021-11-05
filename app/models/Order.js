@@ -12,18 +12,20 @@ const OrderSchema = mongoose.Schema({
             ref: 'Items',
             required: [true, "Stor At is required"]
         },
-        Name: { type: String,},
+        Name: {
+            type: String
+        },
         Quantity: {
             type: Number,
             min: [1, "Quantity is required"],
             deafult: 1
-        }  
-      }],
+        }
+    }],
     OrderStatus: {
         type: String,
         required: [true, 'Order Status is required'],
         enum: {
-            values: ["InProgress", "Shipping", "Arrived"],
+            values: ["Shipping", "Arrived"],
             message: '{VALUE} is not supported',
         }
     },

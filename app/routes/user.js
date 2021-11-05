@@ -75,7 +75,7 @@ async function sendMail(user) {
 router.post('/api/User/register', (req, res) => {
     let newCapacity
     GeneralCapacity.find({}, async (err, foundCapacity) => {
-        const { FullName, CompanyName, NationalId, Phone, Email, password, Role, SubscriptionPlan } = req.body
+        const { FullName, CompanyName, NationalId, Phone, Email, password, Role, SubscriptionPlan, OrderSend } = req.body
         const user = {}
         user.FullName = FullName,
             user.CompanyName = CompanyName,
@@ -84,30 +84,17 @@ router.post('/api/User/register', (req, res) => {
             user.Email = Email,
             user.password = password,
             user.Role = Role,
-            user.SubscriptionPlan = SubscriptionPlan
+            user.SubscriptionPlan = SubscriptionPlan,
+            user.OrderSend =  OrderSend
         const newUser = new User(user)
         const date = new Date()
         const stor = {}
         stor.BelongTo = newUser._id,
-            stor.StorageType = SubscriptionPlan
-        if (SubscriptionPlan === "Primary") {
-            stor.SubscriptionStorageArea = 50
-            stor.StorageArea = 0
-            newCapacity = foundCapacity[0].TotalCapacity - stor.SubscriptionStorageArea
-            await foundCapacity[0].updateOne({ TotalCapacity: newCapacity });
-        }
-        else if (SubscriptionPlan === "Premium") {
-            stor.SubscriptionStorageArea = 100
-            stor.StorageArea = 0
-            newCapacity = foundCapacity[0].TotalCapacity - stor.SubscriptionStorageArea
-            await foundCapacity[0].updateOne({ TotalCapacity: newCapacity });
-        } else {
-            stor.StorageArea = 0
-        }
+        stor.StorageType = SubscriptionPlan
+        stor.StorageArea = 0
         stor.EndOfSubscription = SubscriptionPlan === "Primary" ? EndOfSubscription = new Date(date.setMonth(date.getMonth() + 1))
             : SubscriptionPlan === "Premium" ? EndOfSubscription = new Date(date.setMonth(date.getMonth() + 12))
                 : 0
-        stor.StorageCapacity = foundCapacity[0]._id
         const newStorage = new Storage(stor)
         newUser.StorageId = newStorage._id
         newStorage.save()
