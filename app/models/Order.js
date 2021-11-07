@@ -27,13 +27,14 @@ const OrderSchema = mongoose.Schema({
         enum: {
             values: ["Shipping", "Arrived"],
             message: '{VALUE} is not supported',
+            default:'Shipping'
         }
     },
     ShippedBy: {
         type: String,
         required: [true, 'Order Status is required'],
         enum: {
-            values: ["SPL", "Aramex", "SMSA"],
+            values: ["SPL", "Aramex", "SMSA","DHL"],
             message: '{VALUE} is not supported',
         }
     },

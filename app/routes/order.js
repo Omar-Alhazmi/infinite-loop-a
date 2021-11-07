@@ -49,6 +49,8 @@ router.post('/api/make/order/:id', async (req, res) => {
                     res.status(404).json(error);
                 }
                 try {
+                    haveProduct = haveProduct.filter((el) =>{return el != null});
+                    console.log(haveProduct);
                     let order = {
                         CustomerName: req.body.CustomerName,
                         OrderStatus: req.body.OrderStatus,
