@@ -13,7 +13,6 @@ const  item = require('./app/routes/item');
 const  storage = require('./app/routes/storage');
 const  order = require('./app/routes/order');
 
-// const storage = require('./app/routes/storage');
 // Define Ports
 const reactPort = 3000
 const expressPort = 5000

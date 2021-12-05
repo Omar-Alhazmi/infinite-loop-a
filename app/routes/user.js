@@ -5,7 +5,6 @@ const User = require('../models/User');
 const Storage = require('../models/Storage');
 const Auth = require('../../config/auth');
 const config = require('../../config/db');
-const GeneralCapacity = require('../models/GeneralCapacity');
 require('dotenv').config();
 const nodemailer = require('nodemailer');
 const { google } = require("googleapis");
@@ -73,53 +72,50 @@ async function sendMail(user) {
 //----------------------- All Post request ----------------------------\\
 //this rout response to register a new user
 router.post('/api/User/register', (req, res) => {
-    let newCapacity
-    GeneralCapacity.find({}, async (err, foundCapacity) => {
-        const { FullName, CompanyName, NationalId, Phone, Email, password, Role, SubscriptionPlan, OrderSend } = req.body
-        const user = {}
-        user.FullName = FullName,
-            user.CompanyName = CompanyName,
-            user.NationalId = NationalId,
-            user.Phone = Phone,
-            user.Email = Email,
-            user.password = password,
-            user.Role = Role,
-            user.SubscriptionPlan = SubscriptionPlan,
-            user.OrderSend =  OrderSend
-        const newUser = new User(user)
-        const date = new Date()
-        const stor = {}
-        stor.BelongTo = newUser._id,
+    const { FullName, CompanyName, NationalId, Phone, Email, password, Role, SubscriptionPlan, OrderSend } = req.body
+    const user = {}
+    user.FullName = FullName,
+        user.CompanyName = CompanyName,
+        user.NationalId = NationalId,
+        user.Phone = Phone,
+        user.Email = Email,
+        user.password = password,
+        user.Role = Role,
+        user.SubscriptionPlan = SubscriptionPlan,
+        user.OrderSend = OrderSend
+    const newUser = new User(user)
+    const date = new Date()
+    const stor = {}
+    stor.BelongTo = newUser._id,
         stor.StorageType = SubscriptionPlan
-        stor.StorageArea = 0
-        stor.EndOfSubscription = SubscriptionPlan === "Primary" ? EndOfSubscription = new Date(date.setMonth(date.getMonth() + 1))
-            : SubscriptionPlan === "Premium" ? EndOfSubscription = new Date(date.setMonth(date.getMonth() + 12))
-                : 0
-        const newStorage = new Storage(stor)
-        newUser.StorageId = newStorage._id
-        newStorage.save()
-        User.addUser(newUser, (err, addedUser) => {
-            console.log(addedUser);
-            if (err) {
-                let message = "";
-                console.log(err.errors);
-                if (err.errors.Email) message = "Email ALready Exists";
-                if (err.errors.CompanyName) message = "Please Make Sure To Company Name is required"
-                // else message = "Please Make Sure To Fill The Form Accurately";
-                return res.json({
-                    success: false,
-                    message
-                });
-            } else {
-                sendMail(newUser)
-                    .then((result) => console.log('Email sent...', result))
-                    .catch((error) => console.log(error.message));
-                res.status(200).json({
-                    success: true,
-                    message: "User registration is successful."
-                });
-            }
-        });
+    stor.StorageArea = 0
+    stor.EndOfSubscription = SubscriptionPlan === "Primary" ? EndOfSubscription = new Date(date.setMonth(date.getMonth() + 1))
+        : SubscriptionPlan === "Premium" ? EndOfSubscription = new Date(date.setMonth(date.getMonth() + 12))
+            : 0
+    const newStorage = new Storage(stor)
+    newUser.StorageId = newStorage._id
+    newStorage.save()
+    User.addUser(newUser, (err, addedUser) => {
+        console.log(addedUser);
+        if (err) {
+            let message = "";
+            console.log(err.errors);
+            if (err.errors.Email) message = "Email ALready Exists";
+            if (err.errors.CompanyName) message = "Please Make Sure To Company Name is required"
+            // else message = "Please Make Sure To Fill The Form Accurately";
+            return res.json({
+                success: false,
+                message
+            });
+        } else {
+            sendMail(newUser)
+                .then((result) => console.log('Email sent...', result))
+                .catch((error) => console.log(error.message));
+            res.status(200).json({
+                success: true,
+                message: "User registration is successful."
+            });
+        }
     });
 });
 router.post('/api/User/login', (req, res) => {
@@ -171,67 +167,66 @@ router.post('/api/User/login', (req, res) => {
             }
         });
     });
-});
-
-//======================================
-router.get('/api/user/activation/:id', async (req, res) => {
-    User.findById(req.params.id, async (error, foundUser) => {
-        if (foundUser.Active === false) {
+})
+    //======================================
+    router.get('/api/user/activation/:id', async (req, res) => {
+        User.findById(req.params.id, async (error, foundUser) => {
+            if (foundUser.Active === false) {
+                try {
+                    await foundUser.updateOne({ Active: true })
+                        .exec((err, User) => {
+                            if (err) {
+                                res.status(500).send(err);
+                                return;
+                            }
+                            else {
+                                res.redirect('https://vex-xcc.github.io/infinite-loop/#/SignIn');
+                            }
+                        })
+                } catch (error) {
+                    res.status(404).json(error);
+                }
+            } else {
+                res.redirect('http://google.com');;
+            }
+        }
+        )
+    });
+    //================================== =======================================//
+    router.patch('/api/Update/User/by/:id', (req, res) => {
+        User.findById(req.params.id, async (error, foundUser) => {
             try {
-                await foundUser.updateOne({ Active: true })
-                    .exec((err, User) => {
-                        if (err) {
-                            res.status(500).send(err);
-                            return;
-                        }
-                        else {
-                            res.redirect('https://vex-xcc.github.io/infinite-loop/#/SignIn');
-                        }
-                    })
+                await foundUser.updateOne(req.body);
+                res.status(200).json(req.body);
             } catch (error) {
+                console.log(error);
                 res.status(404).json(error);
             }
-        } else {
-            res.redirect('http://google.com');;
-        }
-    }
-    )
-});
-//================================== =======================================//
-router.patch('/api/Update/User/by/:id', (req, res) => {
-    User.findById(req.params.id, async (error, foundUser) => {
-      try {
-        await foundUser.updateOne(req.body);
-        res.status(200).json(req.body);
-      } catch (error) {
-          console.log(error);
-        res.status(404).json(error);
-      }
-    });
-  });
-//================================
-router.get('/api/get/all/user/Customer', (req, res) => {
-    User.find({})
-        .where('Role')
-        .in('Customer')
-        .select('FullName CompanyName Email Phone -_id')
-        .exec((err, User) => {
-            if (err) {
-                res.status(500).send(err);
-                return;
-            }
-            res.status(200).json(User);
-        })
-});
-router.get('/api/Find/User/By/:id', (req, res) => {
-    User.findById(req.params.id)
-        .exec((err, User) => {
-            if (err) {
-                res.status(500).send(err);
-                return;
-            }
-            res.status(200).json(User);
         });
-});
+    });
+    //================================
+    router.get('/api/get/all/user/Customer', (req, res) => {
+        User.find({})
+            .where('Role')
+            .in('Customer')
+            .select('FullName CompanyName Email Phone -_id')
+            .exec((err, User) => {
+                if (err) {
+                    res.status(500).send(err);
+                    return;
+                }
+                res.status(200).json(User);
+            })
+    });
+    router.get('/api/Find/User/By/:id', (req, res) => {
+        User.findById(req.params.id)
+            .exec((err, User) => {
+                if (err) {
+                    res.status(500).send(err);
+                    return;
+                }
+                res.status(200).json(User);
+            });
+    });
 
-module.exports = router;
+    module.exports = router;

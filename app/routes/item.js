@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const Items = require('../models/Items');
 const Storage = require('../models/Storage');
-const GeneralCapacity = require('../models/GeneralCapacity');
 const Auth = require('../../config/auth');
 require("dotenv").config();
 const fs = require('fs');

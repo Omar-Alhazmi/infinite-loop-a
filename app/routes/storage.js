@@ -1,11 +1,7 @@
 const express = require('express');
 const router =express.Router();
 const Storage = require('../models/Storage');
-const GeneralCapacity = require('../models/GeneralCapacity');
-const User = require('../models/User');
-// const {upload,fileUpload} = require('../../config/helperMethod');
 const Auth = require('../../config/auth');
-const fs = require('fs')
 require("dotenv");
 
 
@@ -13,14 +9,16 @@ require("dotenv");
 
   //============================  GET routers ============================\\
   //==============get all Storage ================\\
-//   router.get('/api/get/GeneralCapacity', (req, res) => {
-//     GeneralCapacity.find({})
-//     .exec((err, GeneralCapacity) => {
-//       if (err) {
-//         res.status(500).send(err);
-//         return;
-//       }
-//       res.status(200).json(GeneralCapacity);
-//     })
-// })
+  router.get('/api/all/storage',Auth.auth.checkStorageAdmin ,(req, res) => {
+    Storage.find({})
+    .populate('BelongTo','CompanyName -_id')
+    .populate('Items','ItemName -_id')
+    .exec((err, storageFound) => {
+      if (err) {
+        res.status(500).send(err);
+        return;
+      }
+      res.status(200).json(storageFound);
+    })
+})
 module.exports = router;
